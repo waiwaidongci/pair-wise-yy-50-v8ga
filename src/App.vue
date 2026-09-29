@@ -27,8 +27,8 @@ const nav = [
         <RouterLink v-for="item in nav" :key="item.to" :to="item.to" @click="mobileOpen = false"><i :class="item.icon" />{{ item.label }}</RouterLink>
       </nav>
       <div class="sidebar-status">
-        <div><span :class="{ warn: !store.locked }" />{{ store.locked ? '基线已审批锁定' : `${store.validations.length} 项预检提示` }}</div>
-        <small>版本 {{ store.revision }} · 自动保存草稿</small>
+        <div><span :class="{ warn: !store.effectiveProof }" />{{ store.effectiveProof ? `生效版本 ${store.effectiveProof.lockedRevision} 已锁定` : '尚无生效通过记录' }}</div>
+        <small>工作版 {{ store.revision }} · {{ store.locked ? '只读，调整需新开一轮' : '编辑中 · 自动保存草稿' }}</small>
       </div>
     </aside>
     <main><RouterView /></main>

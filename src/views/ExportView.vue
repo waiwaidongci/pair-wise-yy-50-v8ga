@@ -53,12 +53,12 @@ function statusSeverity(status?: string) {
 
       <aside>
         <section class="panel">
-          <div class="panel-head"><h3>交付包内容</h3><Tag :value="store.revision" /></div>
+          <div class="panel-head"><h3>交付包内容</h3><Tag :value="store.effectiveProof ? `生效 ${store.effectiveProof.lockedRevision}` : store.revision" :severity="store.effectiveProof ? 'success' : 'warn'" /></div>
           <div class="package-list">
-            <div><i class="pi pi-file-pdf" /><span>拼版 PDF/X-4</span><strong>待生成</strong></div>
+            <div><i class="pi pi-file-pdf" /><span>拼版 PDF/X-4</span><strong>{{ store.effectiveProof ? `按 ${store.effectiveProof.lockedRevision} 锁定版生成` : '无生效版本，禁止下发' }}</strong></div>
             <div><i class="pi pi-check-circle" /><span>预检报告 JSON</span><strong>{{ store.validations.length }} 项</strong></div>
             <div><i class="pi pi-check-circle" /><span>色彩控制条报告</span><strong>已包含</strong></div>
-            <div><i class="pi pi-check-circle" /><span>打样审批记录</span><strong>{{ store.proofs.length }} 轮</strong></div>
+            <div><i class="pi pi-lock" /><span>打样审批与样张锁定记录</span><strong>{{ store.proofs.filter((p) => p.locked).length }} 份归档</strong></div>
             <div><i class="pi pi-check-circle" /><span>纸张与折手规格</span><strong>已包含</strong></div>
           </div>
         </section>

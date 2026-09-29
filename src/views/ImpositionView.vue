@@ -14,6 +14,7 @@ const sideOptions = [
   { label: '反面', value: 'back' },
 ]
 const selected = computed(() => store.positions.find((item) => item.id === store.selectedPosition))
+const selectedPage = computed(() => store.pages.find((page) => page.pageNo === selected.value?.pageNo) ?? null)
 const activeValidations = computed(() => store.validations.filter((item) => !item.pageNo || item.pageNo === selected.value?.pageNo || sideContains(item.pageNo)))
 
 function sideContains(pageNo?: number) {
@@ -34,20 +35,23 @@ function locate(pageNo?: number) {
   <section class="page">
     <div class="page-head">
       <div><p class="eyebrow">IMPOSITION / 拼版工作区</p><h1>Canvas 版位编排与预检</h1><p class="muted">拖拽页面位置，系统实时检查出血、安全区、重叠和骑马订方向。</p></div>
-      <div class="actions"><Button label="批量校验" icon="pi pi-check-circle" outlined /><Button label="保存拼版版本" icon="pi pi-save" @click="store.revision = `R${Number(store.revision.slice(1)) + 1}`" /></div>
+      <div class="actions"><Button label="批量校验" icon="pi pi-check-circle" outlined /><Button label="另存候选版本" icon="pi pi-save" :disabled="store.locked" @click="store.saveCandidateRevision" /></div>
     </div>
 
     <Message v-if="store.validations.length" severity="warn" :closable="false" class="mb-3">
       当前版本有 {{ store.validations.filter((item) => item.severity === '错误').length }} 个阻断错误和 {{ store.validations.filter((item) => item.severity === '警告').length }} 个警告。
+    </Message>
+    <Message v-if="store.locked" severity="success" :closable="false" class="mb-3">
+      <template #icon><i class="pi pi-lock" /></template>
+      当前工作版 {{ store.revision }} 已随打样记录锁定为只读；如需调整，请在打样审批页「新开一轮调整」，系统会自动升版。
     </Message>
 
     <div class="toolbar panel">
       <SelectButton v-model="store.side" :options="sideOptions" optionLabel="label" optionValue="value" />
       <span class="muted">缩放 {{ store.zoom }}%</span>
       <Slider v-model="store.zoom" :min="35" :max="100" :step="5" style="width:150px" />
-      <span class="paper-spec">720 × 1020mm · 出血 3mm · 安全区 5mm · {{ store.locked ? '基线只读' : '编辑中' }}</span>
-      <Button v-if="!store.locked" label="审批锁定" icon="pi pi-lock" size="small" @click="store.lockBaseline" />
-      <Button v-else label="解锁修订" icon="pi pi-lock-open" size="small" severity="warn" outlined @click="store.unlock" />
+      <span class="paper-spec">720 × 1020mm · 出血 3mm · 安全区 5mm · {{ store.locked ? '已锁定 · 只读' : '编辑中' }}</span>
+      <RouterLink to="/proofs"><Button label="打样审批" icon="pi pi-check-circle" size="small" /></RouterLink>
     </div>
 
     <div class="imposition-grid">
@@ -81,9 +85,10 @@ function locate(pageNo?: number) {
         <section class="panel">
           <div class="panel-head"><h3>版位属性</h3><Tag v-if="selected" :value="selected.id" /></div>
           <div v-if="selected" class="properties">
-            <label>页面<select :value="selected.pageNo" @change="store.updatePosition(selected.id, { pageNo: Number(($event.target as HTMLSelectElement).value) })"><option v-for="page in store.pages" :key="page.pageNo" :value="page.pageNo">P{{ page.pageNo }} · {{ page.name }}</option></select></label>
-            <div class="pair"><label>X<input type="number" :value="selected.x" @change="store.updatePosition(selected.id, { x: Number(($event.target as HTMLInputElement).value) })" /></label><label>Y<input type="number" :value="selected.y" @change="store.updatePosition(selected.id, { y: Number(($event.target as HTMLInputElement).value) })" /></label></div>
-            <label>旋转方向<select :value="selected.rotation" @change="store.updatePosition(selected.id, { rotation: Number(($event.target as HTMLSelectElement).value) })"><option :value="0">0°</option><option :value="90">顺时针 90°</option><option :value="180">倒置 180°</option><option :value="270">顺时针 270°</option></select></label>
+            <label>页面<select :value="selected.pageNo" :disabled="store.locked" @change="store.updatePosition(selected.id, { pageNo: Number(($event.target as HTMLSelectElement).value) })"><option v-for="page in store.pages" :key="page.pageNo" :value="page.pageNo">P{{ page.pageNo }} · {{ page.name }}</option></select></label>
+            <div class="pair"><label>X<input type="number" :value="selected.x" :disabled="store.locked" @change="store.updatePosition(selected.id, { x: Number(($event.target as HTMLInputElement).value) })" /></label><label>Y<input type="number" :value="selected.y" :disabled="store.locked" @change="store.updatePosition(selected.id, { y: Number(($event.target as HTMLInputElement).value) })" /></label></div>
+            <label>旋转方向<select :value="selected.rotation" :disabled="store.locked" @change="store.updatePosition(selected.id, { rotation: Number(($event.target as HTMLSelectElement).value) })"><option :value="0">0°</option><option :value="90">顺时针 90°</option><option :value="180">倒置 180°</option><option :value="270">顺时针 270°</option></select></label>
+            <label v-if="selectedPage">页面出血 (mm)<input type="number" min="0" max="10" step="0.5" :value="selectedPage.bleed" :disabled="store.locked" @change="store.updatePage(selectedPage.pageNo, { bleed: Number(($event.target as HTMLInputElement).value) })" /></label>
             <div class="binding-note"><i class="pi pi-info-circle" /><span>{{ store.pages.find((page) => page.pageNo === selected?.pageNo)?.content }}</span></div>
           </div>
           <div v-else class="empty">在画布中选择一个版位以编辑属性。</div>
