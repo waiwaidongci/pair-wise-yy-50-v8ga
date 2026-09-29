@@ -34,20 +34,29 @@ function locate(pageNo?: number) {
   <section class="page">
     <div class="page-head">
       <div><p class="eyebrow">IMPOSITION / 拼版工作区</p><h1>Canvas 版位编排与预检</h1><p class="muted">拖拽页面位置，系统实时检查出血、安全区、重叠和骑马订方向。</p></div>
-      <div class="actions"><Button label="批量校验" icon="pi pi-check-circle" outlined /><Button label="保存拼版版本" icon="pi pi-save" @click="store.revision = `R${Number(store.revision.slice(1)) + 1}`" /></div>
+      <div class="actions">
+        <Button label="批量校验" icon="pi pi-check-circle" outlined />
+        <Button v-if="store.locked" label="锁定只读，需调整请新开一轮" icon="pi pi-lock" disabled />
+        <Button v-else label="去打样审批锁定" icon="pi pi-check-circle" outlined @click="$router.push('/proofs')" />
+      </div>
     </div>
 
-    <Message v-if="store.validations.length" severity="warn" :closable="false" class="mb-3">
-      当前版本有 {{ store.validations.filter((item) => item.severity === '错误').length }} 个阻断错误和 {{ store.validations.filter((item) => item.severity === '警告').length }} 个警告。
+    <Message v-if="store.locked" severity="success" :closable="false" class="mb-3">
+      当前版本 {{ store.revision }} 已随生效打样记录锁定，车间按此版本生产，版位只读。需要调整请在打样审批中新开一轮（自动生成新版本并解锁）。
+    </Message>
+    <Message v-else-if="store.effectiveProof" severity="warn" :closable="false" class="mb-3">
+      正在生效版本 {{ store.effectiveProof.revision }} 的基础上调整（当前 {{ store.revision }}）。修改不会影响车间；新版本通过打样审批前，生产仍按 {{ store.effectiveProof.revision }} 执行。
+    </Message>
+    <Message v-else-if="store.validations.length" severity="warn" :closable="false" class="mb-3">
+      当前版本有 {{ store.validations.filter((item) => item.severity === '错误').length }} 个阻断错误和 {{ store.validations.filter((item) => item.severity === '警告').length }} 个警告；阻断错误清除前打样不能通过。
     </Message>
 
     <div class="toolbar panel">
       <SelectButton v-model="store.side" :options="sideOptions" optionLabel="label" optionValue="value" />
       <span class="muted">缩放 {{ store.zoom }}%</span>
       <Slider v-model="store.zoom" :min="35" :max="100" :step="5" style="width:150px" />
-      <span class="paper-spec">720 × 1020mm · 出血 3mm · 安全区 5mm · {{ store.locked ? '基线只读' : '编辑中' }}</span>
-      <Button v-if="!store.locked" label="审批锁定" icon="pi pi-lock" size="small" @click="store.lockBaseline" />
-      <Button v-else label="解锁修订" icon="pi pi-lock-open" size="small" severity="warn" outlined @click="store.unlock" />
+      <span class="paper-spec">720 × 1020mm · 出血 3mm · 安全区 5mm · {{ store.locked ? '生效版本只读' : '调整编辑中' }}</span>
+      <Tag :value="store.locked ? `已锁定 ${store.revision}` : '未锁定'" :severity="store.locked ? 'success' : 'warn'" />
     </div>
 
     <div class="imposition-grid">
